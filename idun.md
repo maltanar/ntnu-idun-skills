@@ -23,6 +23,9 @@ When generating Slurm scripts, batch jobs, or Python training code for the NTNU 
 ## 4. Environment & Module Loading
 *   Before running Python scripts, always include `module purge` followed by the necessary module loads (e.g., `module load Anaconda3` or `module load Python`).
 *   Assume the user might be using Apptainer (Singularity) containers, which is common for GenAI workloads on IDUN. Ask for confirmation before generating complex Python virtual environment setups.
+*   **JAX with CUDA:** Check the compute node with `nvidia-smi` before selecting a wheel. The current IDUN A100 nodes report CUDA 12.9, so install the compatible CUDA 12 packages in the existing Conda environment with `python -m pip install --upgrade "jax[cuda12]"`. Do not use the default CPU-only `jaxlib` installation for GPU jobs.
+*   Use `jax[cuda13]` only after IDUN upgrades the NVIDIA driver to support CUDA 13; the current driver rejects that runtime with `cudaErrorInsufficientDriver`.
+*   Verify GPU execution inside an allocated Slurm job, not on a login node, with `python -c "import jax; print(jax.devices())"`. The output should include a `CudaDevice`.
 
 ## 5. NN Training Best Practices
 *   **WandB / Logging:** Ensure offline mode is toggled if compute nodes lack direct external internet access, or configure the standard Weights & Biases environment variables. Point all log directories to `/cluster/work/`.
