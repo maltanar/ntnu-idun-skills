@@ -21,11 +21,23 @@ When generating Slurm scripts, batch jobs, or Python training code for the NTNU 
 *   **Account:** Remind the user to insert their group account. Prioritize `share-*` accounts for higher priority if applicable.
 
 ## 4. Environment & Module Loading
-*   Before running Python scripts, always include `module purge` followed by the necessary module loads (e.g., `module load Anaconda3` or `module load Python`).
-*   Assume the user might be using Apptainer (Singularity) containers, which is common for GenAI workloads on IDUN. Ask for confirmation before generating complex Python virtual environment setups.
-*   **JAX with CUDA:** Check the compute node with `nvidia-smi` before selecting a wheel. The current IDUN A100 nodes report CUDA 12.9, so install the compatible CUDA 12 packages in the existing Conda environment with `python -m pip install --upgrade "jax[cuda12]"`. Do not use the default CPU-only `jaxlib` installation for GPU jobs. Verify GPU execution inside an allocated Slurm job, not on a login node, with `python -c "import jax; print(jax.devices())"`. The output should include a `CudaDevice`.
-*   **PyTorch with CUDA:** IDUN has older GPU architectures, so use a CUDA 11.8 PyTorch wheel when broader GPU compatibility is needed: `python -m pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118`. Verify the selected installation inside an allocated Slurm job, not on a login node, with `python -c "import torch; print(torch.cuda.is_available(), torch.cuda.get_device_name(0) if torch.cuda.is_available() else 'CPU')"`.
+*   **Module Setup:** Before running Python scripts or batch jobs, always run `module purge` followed by `module load Anaconda3` (or relevant modules).
+*   **Conda Environment:** Use the existing Conda environment named **`lonnx`** (`conda activate lonnx`).
+*   **PyTorch Version Invariance:** **Never modify or upgrade the PyTorch package version in the `lonnx` environment.** It must remain at the exact version currently installed:
+    ```
+    torch==2.12.1+cu126
+    ```
+    This specific build is critical to maintain CUDA compatibility with older GPU architectures present on IDUN (such as `V100` and `P100`). Avoid installing or updating any package that could pull in or trigger a PyTorch version change.
+*   **Container Usage:** If Apptainer (Singularity) containers are used on IDUN, verify container bindings and module interactions with the user before generating execution scripts.
+*   **JAX with CUDA:** Check the compute node with `nvidia-smi` before selecting a wheel. The current IDUN A100 nodes report CUDA 12.9, so install compatible CUDA 12 packages with `python -m pip install --upgrade "jax[cuda12]"`. Do not use the default CPU-only `jaxlib` installation for GPU jobs. Verify GPU execution inside an allocated Slurm job (`srun`) with `python -c "import jax; print(jax.devices())"`.
 
-## 5. NN Training Best Practices
-*   **WandB / Logging:** Ensure offline mode is toggled if compute nodes lack direct external internet access, or configure the standard Weights & Biases environment variables. Point all log directories to `/cluster/work/`.
+## 5. Directory & Workspace Structure
+*   **Repository Location:** When cloning or setting up repositories on IDUN, always place them in subdirectories under:
+    ```
+    /cluster/home/yamanu/sandbox
+    ```
+    (e.g., `/cluster/home/yamanu/sandbox/project-odin`, `/cluster/home/yamanu/sandbox/torchlogix`).
+
+## 6. NN Training Best Practices
+*   **WandB / Logging:** Ensure offline mode is toggled if compute nodes lack direct external internet access, or configure the standard Weights & Biases environment variables (`WANDB_MODE=offline`). Point all log directories to `/cluster/work/`.
 *   **Checkpointing:** Save frequent model checkpoints to `/cluster/work/`. IDUN jobs can be preempted or run out of time. Ensure `train.py` supports resuming from the latest `.pt` or `.safetensors` file.
