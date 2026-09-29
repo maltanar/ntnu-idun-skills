@@ -15,7 +15,7 @@ When generating Slurm scripts, batch jobs, or Python training code for the NTNU 
     *   `/cluster/work/<username>/`: Large quota. Always point Python training scripts here for dataset loading, WandB offline caching, and saving model checkpoints.
 
 ## 3. Slurm Job Configuration
-*   **Partitions:** IDUN uses a simplified partition system. Use `GPUQ` for all Neural Network training. Do not use legacy partitions (e.g., WORKQ, EPIC) as they have been removed.
+*   **Partitions:** IDUN uses a simplified partition system. Prioritize `CPUQ` for jobs that does not need GPUs. Use `GPUQ` for all Neural Network training. Do not use legacy partitions (e.g., WORKQ, EPIC) as they have been removed.
 *   **Time Limits:** The maximum time limit on `GPUQ` is 14 days. Format as `#SBATCH --time=DD-HH:MM:SS`.
 *   **GPU Requests:** Explicitly request the GPU architecture. IDUN supports `h100`, `a100`, `v100`, and `p100`. Format: `#SBATCH --gres=gpu:a100:1`.
 *   **Account:** Remind the user to insert their group account. Prioritize `share-*` accounts for higher priority if applicable.
@@ -34,9 +34,8 @@ When generating Slurm scripts, batch jobs, or Python training code for the NTNU 
 ## 5. Directory & Workspace Structure
 *   **Repository Location:** When cloning or setting up repositories on IDUN, always place them in subdirectories under:
     ```
-    /cluster/home/yamanu/sandbox
+    /cluster/home/$USER
     ```
-    (e.g., `/cluster/home/yamanu/sandbox/project-odin`, `/cluster/home/yamanu/sandbox/torchlogix`).
 
 ## 6. NN Training Best Practices
 *   **WandB / Logging:** Ensure offline mode is toggled if compute nodes lack direct external internet access, or configure the standard Weights & Biases environment variables (`WANDB_MODE=offline`). Point all log directories to `/cluster/work/`.
