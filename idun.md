@@ -21,7 +21,7 @@ When generating Slurm scripts, batch jobs, or Python training code for the NTNU 
 *   **Account:** Remind the user to insert their group account. Prioritize `share-*` accounts for higher priority if applicable.
 
 ## 4. Environment & Module Loading
-*   **Module Setup:** Before running Python scripts or batch jobs, always run `module purge` followed by `module load Anaconda3` (or relevant modules).
+*   **Module Setup:** Before running Python scripts or batch jobs, always run `module purge` followed by `module load Anaconda3/2025.06-1`.
 *   **Shell Strictness:** Do not enable `set -u`/`set -euxu` before `module purge` or `module load`. IDUN's Anaconda activation scripts may reference optional unset variables (for example, `QT_XCB_GL_INTEGRATION`) and abort the job. Use `set -eo pipefail` around module setup, or enable nounset only after module initialization with the relevant optional variables defined.
 *   **Conda Environment:** Use the existing Conda environment named **`lonnx`** (`conda activate lonnx`).
 *   **PyTorch Version Invariance:** **Never modify or upgrade the PyTorch package version in the `lonnx` environment.** It must remain at the exact version currently installed:
