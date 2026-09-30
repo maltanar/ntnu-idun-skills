@@ -22,6 +22,7 @@ When generating Slurm scripts, batch jobs, or Python training code for the NTNU 
 
 ## 4. Environment & Module Loading
 *   **Module Setup:** Before running Python scripts or batch jobs, always run `module purge` followed by `module load Anaconda3` (or relevant modules).
+*   **Shell Strictness:** Do not enable `set -u`/`set -euxu` before `module purge` or `module load`. IDUN's Anaconda activation scripts may reference optional unset variables (for example, `QT_XCB_GL_INTEGRATION`) and abort the job. Use `set -eo pipefail` around module setup, or enable nounset only after module initialization with the relevant optional variables defined.
 *   **Conda Environment:** Use the existing Conda environment named **`lonnx`** (`conda activate lonnx`).
 *   **PyTorch Version Invariance:** **Never modify or upgrade the PyTorch package version in the `lonnx` environment.** It must remain at the exact version currently installed:
     ```
@@ -38,5 +39,6 @@ When generating Slurm scripts, batch jobs, or Python training code for the NTNU 
     ```
 
 ## 6. NN Training Best Practices
+*   **Batch Diagnostics:** Use unbuffered Python (`python -u` or `PYTHONUNBUFFERED=1`) and print the hostname, CUDA-visible devices, and a short `nvidia-smi` summary before training. This makes pre-training shell/module failures visible in Slurm logs.
 *   **WandB / Logging:** Ensure offline mode is toggled if compute nodes lack direct external internet access, or configure the standard Weights & Biases environment variables (`WANDB_MODE=offline`). Point all log directories to `/cluster/work/`.
 *   **Checkpointing:** Save frequent model checkpoints to `/cluster/work/`. IDUN jobs can be preempted or run out of time. Ensure `train.py` supports resuming from the latest `.pt` or `.safetensors` file.
