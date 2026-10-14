@@ -149,3 +149,44 @@ python -c "import jax; print(jax.devices())"
    export WANDB_DIR="/cluster/work/$USER/wandb"
    ```
 4. **Checkpoint Resumption:** Always save frequent model checkpoints to `/cluster/work/<username>/checkpoints/` and ensure training scripts can resume from the latest `.pt` or `.safetensors` file.
+
+---
+
+## 6. Slurm Job Monitoring for Agentic AI
+
+When pair-programming or delegating long-running training jobs to an agentic AI assistant, avoid active polling loops in chat (which burn tokens and context window). Use one of two primary monitoring patterns:
+
+### Approach A: Reactive Background Watcher (Best for Short-to-Medium Runs < 2h)
+The agent executes an asynchronous background task on the local machine that discretely queries the remote Slurm queue (e.g. `slurm_watcher.py` or a shell loop with keepalive). Because queries are discrete or use keepalives, it is immune to idle TCP drops:
+```python
+# distill-experiments/slurm_watcher.py
+python3 distill-experiments/slurm_watcher.py <slurm_job_id> --interval 60
+```
+Or via shell with SSH keepalive flags (`-o ServerAliveInterval=15 -o ServerAliveCountMax=3`):
+```bash
+python3 -c '
+import subprocess, time, sys
+job_id = sys.argv[1]
+while subprocess.run(["ssh", "-o", "ConnectTimeout=10", "-o", "ServerAliveInterval=15", "username@idun-login1.hpc.ntnu.no", f"squeue -j {job_id} -h"], capture_output=True, text=True).stdout.strip():
+    time.sleep(60)
+print(f"SLURM_JOB_DONE:{job_id}")
+' <slurm_job_id>
+```
+* **Reactive Wakeup:** The agentic runtime automatically triggers an event callback waking up the agent the moment the background watcher exits, so the agent can immediately parse results, inspect checkpoints, and continue the workflow without burning context tokens while waiting.
+
+### Approach B: Filesystem Sentinel Hook with Scheduled Heartbeats (Best for Long Sweeps & Multi-Day Runs)
+For long jobs or multi-job arrays where network/VPN drops can interrupt persistent SSH sessions:
+1. **Add an exit trap to the `.sbatch` script**:
+   ```bash
+   STATUS_DIR="/cluster/work/$USER/job_status"
+   mkdir -p "$STATUS_DIR"
+
+   cleanup() {
+       EXIT_CODE=$?
+       echo "{\"job_id\": $SLURM_JOB_ID, \"exit_code\": $EXIT_CODE, \"finished_at\": \"$(date -Iseconds)\"}" \
+           > "$STATUS_DIR/${SLURM_JOB_ID}.status"
+   }
+   trap cleanup EXIT
+   ```
+2. **Scheduled Inspection**: The agent sets a periodic schedule or timer (e.g. every 15–30 minutes) to inspect the tail of `slurm-%j.out` for intermediate progress (loss, epoch metrics) and verify if `${SLURM_JOB_ID}.status` has appeared. This is fully resilient to VPN resets and login node restarts.
+
