@@ -56,6 +56,19 @@ See [the Slurm batch job template](assets/slurm_template.sbatch) for a starter s
   ```bash
   #SBATCH --gres=gpu:a100:1
   ```
+* **`torch.compile` (Triton) vs. Tesla P100:**
+  > [!WARNING]
+  > **Avoid requesting or allowing Tesla P100 (`p100`) GPUs if the job uses `torch.compile`:**
+  > PyTorch 2.x Inductor uses Triton as its GPU code generation backend. Triton strictly requires NVIDIA CUDA Compute Capability $\ge 7.0$ (Volta `v100`, Ampere `a100`, Hopper `h100`).
+  > The Tesla P100 is Pascal architecture (Compute Capability 6.0) and will immediately fail during JIT compilation with `torch._inductor.exc.GPUTooOldForTriton`.
+  > 
+  > For jobs involving `torch.compile`:
+  > - Explicitly request modern GPUs: `#SBATCH --gres=gpu:a100:1` or `#SBATCH --gres=gpu:v100:1`.
+  > - If requesting generic GPUs with `#SBATCH --gres=gpu:1`, add a feature constraint:
+  >   ```bash
+  >   #SBATCH --constraint="a100|h100|v100"
+  >   ```
+  >   to prevent Slurm from allocating any of IDUN's P100 nodes (`idun-11-[02-14]`).
 * **Accounts:** Specify group account. Prioritize `share-*` accounts for higher queue priority:
   ```bash
   #SBATCH --account=share-<group>

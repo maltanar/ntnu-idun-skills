@@ -4,7 +4,8 @@
 #SBATCH --account=share-<your-group>    # Group account; share-* for higher priority
 #SBATCH --time=01-00:00:00              # DD-HH:MM:SS (GPUQ limit: 14 days)
 #SBATCH --nodes=1
-#SBATCH --gres=gpu:a100:1               # Supported architectures: h100, a100, v100, p100
+#SBATCH --gres=gpu:a100:1               # Architectures: h100, a100, v100, p100 (avoid p100 if using torch.compile)
+# If using generic --gres=gpu:1 with torch.compile, add: #SBATCH --constraint="a100|h100|v100"
 #SBATCH --cpus-per-task=8
 #SBATCH --mem=32G
 #SBATCH --output=/cluster/work/%u/logs/%x-%j.out
